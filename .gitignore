@@ -219,3 +219,6 @@ __marimo__/
 
 # Cloned source dataset (see LICENSE-NOTICE.md)
 data/raw/
+
+# Local Chroma index (rebuild with build_index.py)
+data/chroma/
