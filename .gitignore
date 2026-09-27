@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Cloned source dataset (see LICENSE-NOTICE.md)
+data/raw/
