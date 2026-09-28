@@ -42,6 +42,7 @@ Deliberately small and interview-explainable, not production-grade.
 - `eval.py` + `eval_cases.json`: frozen evaluation set (20 scored typed cases, 1 diagnostic grounding probe,
   4 typed-vs-audio pairs), each run once; scores status, reasons, retrieved IDs, PII masking, LLM call counts.
   Writes `eval_results.csv` as generated output (no full answers, no raw PII).
+- `README.md`: reviewer-facing documentation (architecture, decisions, Stage 6 results, limitations, setup).
 - `experiments/`: run as modules from repo root, e.g. `uv run python -m experiments.compare_models`
 
 Pipeline: [audio → Whisper transcript →] query → PII masking → injection detection (→ `BLOCKED_INJECTION`, no retrieval/LLM) → E5 retrieval top_k=3
@@ -100,6 +101,6 @@ Completed:
 5A. ASR (faster-whisper) feeding the text pipeline
 5B. TTS for the final answer
 6. Evaluation
-
-Next:
 7. README / final documentation
+
+All planned project stages are complete.
