@@ -29,7 +29,13 @@ Deliberately small and interview-explainable, not production-grade.
 - `pipeline.py`: `process_audio(path)` = `transcribe()` → `process_query()`, adds `transcript` and `timings`
   (`asr_model_load`, `asr`, `total`); the raw transcript is diagnostic prototype output, never logged or persisted.
   `process_query(text)` → dict with `status`, `masked_query`, `pii_types_found`, `reasons`, `retrieved_faqs`,
-  `top_1_distance`, `answer`, plus internal/debug `relevance_check`, `rejected_answer`, `groundedness_check`
+  `top_1_distance`, `answer`, plus internal/debug `relevance_check`, `rejected_answer`, `groundedness_check`.
+  `speak_result(result, path)` returns a copy with `tts`: speaks only `answer` (OK or fixed HANDOFF message),
+  never debug fields; no TTS for `BLOCKED_INJECTION` (`tts: None`). Adds `timings["tts"]` and adds it to `total`.
+- `tts.py`: `synthesize(text, path)` via OpenAI TTS (`gpt-4o-mini-tts-2025-12-15`, voice `marin`, WAV); model/voice
+  duplicated from `generate_test_audio.py` (no import of a test-data script), but with a brisk customer-service
+  instruction instead of the slower customer-voice one.
+- `out/`: generated answer audio; git-ignored because it may contain user-derived content.
 - `generate_test_audio.py`: OpenAI TTS → `audio/<stem>.wav` from `audio_samples.txt` (`--force` regenerates).
   `audio/` holds committed synthetic TTS test samples (no real recordings or personal data), so Stage 5 ASR
   is reproducible right after cloning.
@@ -37,7 +43,7 @@ Deliberately small and interview-explainable, not production-grade.
 
 Pipeline: [audio → Whisper transcript →] query → PII masking → injection detection (→ `BLOCKED_INJECTION`, no retrieval/LLM) → E5 retrieval top_k=3
 → distance gate (→ `HANDOFF`, 0 LLM calls) → context relevance (→ `HANDOFF`) → generation → fallback-sentence check
-(→ `HANDOFF`) → groundedness (→ `HANDOFF`) → `OK`. Statuses: `OK`, `BLOCKED_INJECTION`, `HANDOFF` (fixed handoff message).
+(→ `HANDOFF`) → groundedness (→ `HANDOFF`) → `OK` [→ TTS of the answer]. Statuses: `OK`, `BLOCKED_INJECTION`, `HANDOFF` (fixed handoff message).
 
 # Key decisions
 
@@ -70,7 +76,12 @@ Pipeline: [audio → Whisper transcript →] query → PII masking → injection
   wrong digit counts, and other spoken-number renderings could bypass the regex. A production voicebot needs
   PII handling designed for ASR output.
 - Observed warm end-to-end processing (ASR + retrieval + 3 sequential LLM calls, excluding cold start and TTS) was ~4.5 s for four clean synthetic clips on the current machine and network; a small prototype measurement, not a production benchmark.
-- No TTS in the pipeline, no systematic evaluation set yet.
+- TTS is a cloud API call (OpenAI). Answers are synthesized as plain text: no number/IBAN pronunciation rules,
+  no streaming, no barge-in. Audio input is still tested only with clean synthetic speech.
+- With TTS, two single warm runs of 01_umzug took ~9.5 s and ~6.5 s end to end (ASR ~1.2 s + text pipeline
+  ~3.4–4.1 s + TTS ~2.0–4.3 s); the spread comes mostly from API/network time. TTS returns the full file before
+  playback. Clean synthetic input, warmed local models; small prototype observations, not a production benchmark.
+- No systematic evaluation set yet.
 
 # Stage status
 
@@ -80,8 +91,8 @@ Completed:
 3. PII/injection guards + LLM generation
 4. Relevance gating, HANDOFF, and groundedness
 5A. ASR (faster-whisper) feeding the text pipeline
+5B. TTS for the final answer
 
 Next:
-5B. TTS
 6. Evaluation
 7. README / final documentation

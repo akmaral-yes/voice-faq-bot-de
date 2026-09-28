@@ -17,6 +17,7 @@ from asr import transcribe
 from guards import detect_injection, mask_pii
 from llm import LLMClient, OpenAIClient
 from retrieval import retrieve
+from tts import synthesize
 
 # Provisional coarse out-of-domain gate.
 # - Model: intfloat/multilingual-e5-base; Chroma cosine distance; LOWER = closer.
@@ -226,4 +227,27 @@ def process_audio(audio_path: str, llm: LLMClient | None = None) -> dict:
         "asr": asr["elapsed_seconds"],
         "total": time.perf_counter() - start,
     }
+    return result
+
+
+def speak_result(result: dict, output_path: str) -> dict:
+    """Synthesize the customer-facing answer; returns a shallow copy of result with "tts" added.
+
+    OK and HANDOFF speak exactly result["answer"] (for HANDOFF that is the fixed
+    HANDOFF_MESSAGE). Debug fields such as rejected_answer or the transcript are
+    never spoken. BLOCKED_INJECTION makes no TTS call and creates no file.
+    """
+    result = dict(result)
+    if result["status"] == "BLOCKED_INJECTION":
+        result["tts"] = None
+        return result
+
+    tts = synthesize(result["answer"], output_path)
+    result["tts"] = tts
+    if "timings" in result:
+        timings = dict(result["timings"])
+        timings["tts"] = tts["elapsed_seconds"]
+        if timings.get("total") is not None:
+            timings["total"] += tts["elapsed_seconds"]  # total so far covered everything before TTS
+        result["timings"] = timings
     return result

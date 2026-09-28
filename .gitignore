@@ -222,3 +222,6 @@ data/raw/
 
 # Local Chroma index (rebuild with build_index.py)
 data/chroma/
+
+# Generated answer audio (may contain user-derived content)
+out/
