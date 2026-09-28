@@ -26,6 +26,9 @@ Deliberately small and interview-explainable, not production-grade.
 - `llm.py`: `LLMClient` Protocol, `OpenAIClient` (`OPENAI_API_KEY`; model `gpt-4.1-mini`, override via `OPENAI_MODEL`)
 - `pipeline.py`: `process_query(text)` → dict with `status`, `masked_query`, `pii_types_found`, `reasons`, `retrieved_faqs`,
   `top_1_distance`, `answer`, plus internal/debug `relevance_check`, `rejected_answer`, `groundedness_check`
+- `generate_test_audio.py`: OpenAI TTS → `audio/<stem>.wav` from `audio_samples.txt` (`--force` regenerates).
+  `audio/` holds committed synthetic TTS test samples (no real recordings or personal data), so Stage 5 ASR
+  is reproducible right after cloning.
 - `experiments/`: run as modules from repo root, e.g. `uv run python -m experiments.compare_models`
 
 Pipeline: query → PII masking → injection detection (→ `BLOCKED_INJECTION`, no retrieval/LLM) → E5 retrieval top_k=3
@@ -56,7 +59,9 @@ Pipeline: query → PII masking → injection detection (→ `BLOCKED_INJECTION`
 - `OUT_OF_DOMAIN_MAX_DISTANCE = 0.20` is provisional (from ~5 manual queries; E5 distances are compressed ~0.11–0.24);
   must be calibrated in Stage 6. It only catches clearly off-topic queries, not "right topic, wrong FAQ".
 - Relevance/groundedness judges are LLMs themselves and may err; 3 sequential LLM calls add latency.
-- No ASR/TTS, no systematic evaluation set yet.
+- Synthetic clean TTS speech tests the pipeline, not real-world ASR robustness; real speech, noise, accents,
+  telephone codecs, and Swiss German are not covered.
+- No ASR/TTS in the pipeline, no systematic evaluation set yet.
 
 # Stage status
 

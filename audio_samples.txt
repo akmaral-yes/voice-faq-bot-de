@@ -1,0 +1,4 @@
+01_umzug | Ich ziehe nächsten Monat um. Kann ich meine Festnetznummer behalten?
+02_tochter | Meine Tochter hat eine zweite SIM-Karte. Wer bezahlt die Rechnung dafür?
+03_nummer_woerter | Meine Telefonnummer ist null eins fünf eins null null null null null null null null. Ich ziehe um und möchte wissen, ob ich meine Festnetznummer behalten kann.
+04_nummer_ziffern | Meine Telefonnummer ist 0151 00000000. Ich ziehe um und möchte wissen, ob ich meine Festnetznummer behalten kann.
