@@ -39,6 +39,9 @@ Deliberately small and interview-explainable, not production-grade.
 - `generate_test_audio.py`: OpenAI TTS → `audio/<stem>.wav` from `audio_samples.txt` (`--force` regenerates).
   `audio/` holds committed synthetic TTS test samples (no real recordings or personal data), so Stage 5 ASR
   is reproducible right after cloning.
+- `eval.py` + `eval_cases.json`: frozen evaluation set (20 scored typed cases, 1 diagnostic grounding probe,
+  4 typed-vs-audio pairs), each run once; scores status, reasons, retrieved IDs, PII masking, LLM call counts.
+  Writes `eval_results.csv` as generated output (no full answers, no raw PII).
 - `experiments/`: run as modules from repo root, e.g. `uv run python -m experiments.compare_models`
 
 Pipeline: [audio → Whisper transcript →] query → PII masking → injection detection (→ `BLOCKED_INJECTION`, no retrieval/LLM) → E5 retrieval top_k=3
@@ -81,7 +84,11 @@ Pipeline: [audio → Whisper transcript →] query → PII masking → injection
 - With TTS, two single warm runs of 01_umzug took ~9.5 s and ~6.5 s end to end (ASR ~1.2 s + text pipeline
   ~3.4–4.1 s + TTS ~2.0–4.3 s); the spread comes mostly from API/network time. TTS returns the full file before
   playback. Clean synthetic input, warmed local models; small prototype observations, not a production benchmark.
-- No systematic evaluation set yet.
+- PII: numbers typed or transcribed as digit words ("null eins fünf …") are not masked at all and reached
+  retrieval and all LLM calls in the evaluation.
+- Stage 6 evaluation (small, manually authored): in-domain unanswerable top-1 distances (0.14–0.18) overlap
+  answerable ones (0.07–0.16), so only the relevance check separates them. `handoff:not_grounded` never fired on
+  natural cases, so groundedness recall is only shown by constructed examples.
 
 # Stage status
 
@@ -92,7 +99,7 @@ Completed:
 4. Relevance gating, HANDOFF, and groundedness
 5A. ASR (faster-whisper) feeding the text pipeline
 5B. TTS for the final answer
+6. Evaluation
 
 Next:
-6. Evaluation
 7. README / final documentation
