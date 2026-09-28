@@ -11,7 +11,9 @@ voicebot would likely need to cut this latency (e.g. combine or parallelize call
 """
 
 import json
+import time
 
+from asr import transcribe
 from guards import detect_injection, mask_pii
 from llm import LLMClient, OpenAIClient
 from retrieval import retrieve
@@ -144,7 +146,7 @@ def check_groundedness(answer, faqs, llm: LLMClient):
     return {"grounded": data["grounded"] and not claims, "unsupported_claims": claims}
 
 
-def process_query(text, llm: LLMClient = None):
+def process_query(text, llm: LLMClient | None = None) -> dict:
     masked_query, pii_types = mask_pii(text)  # nothing below sees the raw text
     result = {
         "status": "OK",
@@ -204,4 +206,24 @@ def process_query(text, llm: LLMClient = None):
         return handoff("handoff:not_grounded")
 
     result["answer"] = answer
+    return result
+
+
+def process_audio(audio_path: str, llm: LLMClient | None = None) -> dict:
+    """Audio file -> Whisper transcript -> process_query().
+
+    The raw transcript goes only into process_query(), which masks PII before
+    retrieval and any LLM call. Returning "transcript" is diagnostic output for
+    this prototype; with real user speech it could contain PII and would need
+    stricter handling (not returned, logged, or persisted).
+    """
+    start = time.perf_counter()
+    asr = transcribe(audio_path)
+    result = process_query(asr["text"], llm)
+    result["transcript"] = asr["text"]
+    result["timings"] = {
+        "asr_model_load": asr["model_load_seconds"],  # None if Whisper was already loaded
+        "asr": asr["elapsed_seconds"],
+        "total": time.perf_counter() - start,
+    }
     return result

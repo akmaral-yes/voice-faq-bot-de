@@ -24,14 +24,18 @@ Deliberately small and interview-explainable, not production-grade.
 - `retrieval.py`: `retrieve(query, top_k=3)`; opens existing index, embeds only the query
 - `guards.py`: `mask_pii()`, `detect_injection()` (returns list of reasons)
 - `llm.py`: `LLMClient` Protocol, `OpenAIClient` (`OPENAI_API_KEY`; model `gpt-4.1-mini`, override via `OPENAI_MODEL`)
-- `pipeline.py`: `process_query(text)` → dict with `status`, `masked_query`, `pii_types_found`, `reasons`, `retrieved_faqs`,
+- `asr.py`: `transcribe(path)` with faster-whisper `small`, CPU, int8, language forced to `de` (no language detection);
+  model loaded lazily and cached, load time reported separately from transcription time.
+- `pipeline.py`: `process_audio(path)` = `transcribe()` → `process_query()`, adds `transcript` and `timings`
+  (`asr_model_load`, `asr`, `total`); the raw transcript is diagnostic prototype output, never logged or persisted.
+  `process_query(text)` → dict with `status`, `masked_query`, `pii_types_found`, `reasons`, `retrieved_faqs`,
   `top_1_distance`, `answer`, plus internal/debug `relevance_check`, `rejected_answer`, `groundedness_check`
 - `generate_test_audio.py`: OpenAI TTS → `audio/<stem>.wav` from `audio_samples.txt` (`--force` regenerates).
   `audio/` holds committed synthetic TTS test samples (no real recordings or personal data), so Stage 5 ASR
   is reproducible right after cloning.
 - `experiments/`: run as modules from repo root, e.g. `uv run python -m experiments.compare_models`
 
-Pipeline: query → PII masking → injection detection (→ `BLOCKED_INJECTION`, no retrieval/LLM) → E5 retrieval top_k=3
+Pipeline: [audio → Whisper transcript →] query → PII masking → injection detection (→ `BLOCKED_INJECTION`, no retrieval/LLM) → E5 retrieval top_k=3
 → distance gate (→ `HANDOFF`, 0 LLM calls) → context relevance (→ `HANDOFF`) → generation → fallback-sentence check
 (→ `HANDOFF`) → groundedness (→ `HANDOFF`) → `OK`. Statuses: `OK`, `BLOCKED_INJECTION`, `HANDOFF` (fixed handoff message).
 
@@ -61,7 +65,12 @@ Pipeline: query → PII masking → injection detection (→ `BLOCKED_INJECTION`
 - Relevance/groundedness judges are LLMs themselves and may err; 3 sequential LLM calls add latency.
 - Synthetic clean TTS speech tests the pipeline, not real-world ASR robustness; real speech, noise, accents,
   telephone codecs, and Swiss German are not covered.
-- No ASR/TTS in the pipeline, no systematic evaluation set yet.
+- Swiss German is untested; forcing `de` disables language detection.
+- Regex PII masking runs on ASR output: spoken digits came out as digit groups (masked in both tests), but with
+  wrong digit counts, and other spoken-number renderings could bypass the regex. A production voicebot needs
+  PII handling designed for ASR output.
+- Observed warm end-to-end processing (ASR + retrieval + 3 sequential LLM calls, excluding cold start and TTS) was ~4.5 s for four clean synthetic clips on the current machine and network; a small prototype measurement, not a production benchmark.
+- No TTS in the pipeline, no systematic evaluation set yet.
 
 # Stage status
 
@@ -70,8 +79,9 @@ Completed:
 2. Retrieval baseline and embedding-model experiments
 3. PII/injection guards + LLM generation
 4. Relevance gating, HANDOFF, and groundedness
+5A. ASR (faster-whisper) feeding the text pipeline
 
 Next:
-5. ASR/TTS
+5B. TTS
 6. Evaluation
 7. README / final documentation
