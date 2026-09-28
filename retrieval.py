@@ -64,6 +64,7 @@ def retrieve(query: str, top_k: int = 3):
             "instance_id": meta["instance_id"],
             "source_instance_ids": meta["source_instance_ids"],
             "question": meta["question"],
+            "answer": meta["answer"],
             "use_case": meta["use_case"],
             "distance": distance,
         })

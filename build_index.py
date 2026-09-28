@@ -42,6 +42,7 @@ def main():
                 "source_instance_ids": r["source_instance_ids"],
                 "use_case": r["use_case"],
                 "question": r["question"],
+                "answer": r["answer"],
             }
             for r in records
         ],
